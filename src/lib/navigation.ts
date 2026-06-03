@@ -1,7 +1,6 @@
 export const navigation = [
-  { href: "/", label: "Overview" },
-  { href: "/upload", label: "File upload" },
-  { href: "/chat", label: "Chat" },
-  { href: "/admin", label: "Admin" },
-];
-
+  { href: "/", key: "overview" },
+  { href: "/upload", key: "upload" },
+  { href: "/chat", key: "chat" },
+  { href: "/admin", key: "admin" },
+] as const;
