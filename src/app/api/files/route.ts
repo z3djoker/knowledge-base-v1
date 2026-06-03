@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, listUploadedFiles } from "@/lib/files";
+import { deleteFileMetadata } from "@/lib/file-metadata";
 import { deleteParsedFile } from "@/lib/parsed-files";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +31,12 @@ export async function DELETE(request: Request) {
 
     await deleteUploadedFile(body.fileName);
     const parsedResult = await deleteParsedFile(body.fileName);
+    const metadataResult = await deleteFileMetadata(body.fileName);
 
     return NextResponse.json({
       deletedFileName: body.fileName,
       deletedParsedResult: parsedResult.deleted,
+      deletedMetadata: metadataResult.deleted,
     });
   } catch (error) {
     const message =
