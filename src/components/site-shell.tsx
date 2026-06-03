@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useLanguage } from "@/components/language-provider";
 import { navigation } from "@/lib/navigation";
 
 type SiteShellProps = {
@@ -6,6 +10,8 @@ type SiteShellProps = {
 };
 
 export function SiteShell({ children }: SiteShellProps) {
+  const { dictionary } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[#f7f8fb] text-slate-950">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -16,24 +22,27 @@ export function SiteShell({ children }: SiteShellProps) {
             </span>
             <span>
               <span className="block text-base font-semibold">
-                Knowledge Base
+                {dictionary.shell.brand}
               </span>
               <span className="block text-sm text-slate-500">
-                Project foundation
+                {dictionary.shell.subtitle}
               </span>
             </span>
           </Link>
-          <nav className="flex flex-wrap gap-2 text-sm font-medium text-slate-600">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex flex-wrap items-center gap-3">
+            <nav className="flex flex-wrap gap-2 text-sm font-medium text-slate-600">
+              {navigation.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-md px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950"
+                >
+                  {dictionary.shell.navigation[item.key]}
+                </Link>
+              ))}
+            </nav>
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl px-6 py-8 md:py-12">
@@ -42,4 +51,3 @@ export function SiteShell({ children }: SiteShellProps) {
     </div>
   );
 }
-
