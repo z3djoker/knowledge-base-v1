@@ -23,6 +23,7 @@
 # local uploads
 /uploads/
 /parsed/
+/metadata/
 
 # misc
 .DS_Store
