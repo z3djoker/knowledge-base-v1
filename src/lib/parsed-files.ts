@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 export type ParsedFileMetadata = Record<string, string | number | boolean>;
@@ -53,4 +53,18 @@ export async function listParsedFiles(): Promise<ParsedFile[]> {
   return parsedFiles.sort(
     (a, b) => new Date(b.parsedAt).getTime() - new Date(a.parsedAt).getTime(),
   );
+}
+
+export async function deleteParsedFile(fileName: string) {
+  try {
+    await unlink(getParsedFilePath(fileName));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return { deleted: false };
+    }
+
+    throw error;
+  }
+
+  return { deleted: true };
 }

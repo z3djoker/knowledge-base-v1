@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ file: savedFile }, { status: 201 });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unable to upload file.";
+      error instanceof Error ? error.message : "上传文件失败。";
 
     return NextResponse.json({ error: message }, { status: 400 });
   }

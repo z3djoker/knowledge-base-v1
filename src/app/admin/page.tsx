@@ -4,6 +4,8 @@ import { AdminIntro } from "./ui";
 import { listUploadedFiles } from "@/lib/files";
 import { listParsedFiles } from "@/lib/parsed-files";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const files = await listUploadedFiles();
   const parsedFiles = await listParsedFiles();

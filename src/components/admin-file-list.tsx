@@ -16,6 +16,37 @@ type ParseStatus = {
   message: string;
 };
 
+type DeleteStatus = {
+  tone: "loading" | "success" | "error";
+  message: string;
+};
+
+const adminText = {
+  delete: "\u5220\u9664",
+  deleting: "\u5220\u9664\u4e2d",
+  deleteSuccess: "\u5220\u9664\u6210\u529f",
+  deleteFailed: "\u5220\u9664\u5931\u8d25",
+  confirmDelete:
+    "\u786e\u8ba4\u5220\u9664\u8be5\u6587\u4ef6\u5417\uff1f\u5982\u679c\u5df2\u89e3\u6790\uff0c\u5bf9\u5e94\u7684\u89e3\u6790\u7ed3\u679c\u4e5f\u4f1a\u88ab\u5220\u9664\u3002",
+  storedFileName: "\u5b58\u50a8\u6587\u4ef6\u540d",
+  parseStatus: "\u89e3\u6790\u72b6\u6001",
+  textSummary: "\u6587\u672c\u6458\u8981",
+  action: "\u64cd\u4f5c",
+  parsing: "\u89e3\u6790\u4e2d",
+  parseSuccess: "\u89e3\u6790\u6210\u529f",
+  parseFailed: "\u89e3\u6790\u5931\u8d25",
+  parsedAt: "\u5df2\u89e3\u6790\u4e8e",
+  notParsed: "\u5c1a\u672a\u89e3\u6790",
+  unsupported: "V3.1 \u6682\u4e0d\u652f\u6301\u89e3\u6790",
+  noSummary: "\u6682\u65e0\u6458\u8981",
+  parse: "\u89e3\u6790",
+  reparse: "\u91cd\u65b0\u89e3\u6790",
+  localParsed: "V3.1 \u672c\u5730\u6587\u672c\u89e3\u6790",
+  parsedFiles: "\u5df2\u89e3\u6790",
+  fileUnit: "\u4e2a\u6587\u4ef6",
+  noExtractedText: "\u672a\u63d0\u53d6\u5230\u6587\u672c\u5185\u5bb9\u3002",
+};
+
 function formatUploadTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -37,7 +68,7 @@ function createSummary(text: string) {
   const normalized = text.replace(/\s+/g, " ").trim();
 
   if (!normalized) {
-    return "No extractable text found.";
+    return adminText.noExtractedText;
   }
 
   return normalized.length > 220
@@ -47,25 +78,29 @@ function createSummary(text: string) {
 
 export function AdminFileList({ files, parsedFiles }: AdminFileListProps) {
   const { dictionary } = useLanguage();
+  const [visibleFiles, setVisibleFiles] = useState(files);
   const [parsedByFileName, setParsedByFileName] = useState(() =>
     Object.fromEntries(parsedFiles.map((file) => [file.fileName, file])),
   );
   const [parseStatuses, setParseStatuses] = useState<Record<string, ParseStatus>>(
     {},
   );
+  const [deleteStatuses, setDeleteStatuses] = useState<
+    Record<string, DeleteStatus>
+  >({});
   const fileLabel =
-    files.length === 1
+    visibleFiles.length === 1
       ? dictionary.admin.fileSingular
       : dictionary.admin.filePlural;
   const parsedCount = useMemo(
-    () => files.filter((file) => parsedByFileName[file.name]).length,
-    [files, parsedByFileName],
+    () => visibleFiles.filter((file) => parsedByFileName[file.name]).length,
+    [visibleFiles, parsedByFileName],
   );
 
   async function parseFile(fileName: string) {
     setParseStatuses((current) => ({
       ...current,
-      [fileName]: { tone: "loading", message: "Parsing..." },
+      [fileName]: { tone: "loading", message: adminText.parsing },
     }));
 
     try {
@@ -88,14 +123,68 @@ export function AdminFileList({ files, parsedFiles }: AdminFileListProps) {
       }));
       setParseStatuses((current) => ({
         ...current,
-        [fileName]: { tone: "success", message: "Parsed successfully." },
+        [fileName]: { tone: "success", message: adminText.parseSuccess },
       }));
     } catch (error) {
+      const message = error instanceof Error ? error.message : "未知错误";
+
       setParseStatuses((current) => ({
         ...current,
         [fileName]: {
           tone: "error",
-          message: error instanceof Error ? error.message : "Parse failed.",
+          message: `${adminText.parseFailed}\uff1a${message}`,
+        },
+      }));
+    }
+  }
+
+  async function deleteFile(fileName: string) {
+    if (!window.confirm(adminText.confirmDelete)) {
+      return;
+    }
+
+    setDeleteStatuses((current) => ({
+      ...current,
+      [fileName]: { tone: "loading", message: adminText.deleting },
+    }));
+
+    try {
+      const response = await fetch("/api/files", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fileName }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error ?? adminText.deleteFailed);
+      }
+
+      setVisibleFiles((current) =>
+        current.filter((file) => file.name !== fileName),
+      );
+      setParsedByFileName((current) => {
+        const next = { ...current };
+        delete next[fileName];
+        return next;
+      });
+      setDeleteStatuses((current) => ({
+        ...current,
+        [fileName]: {
+          tone: "success",
+          message: adminText.deleteSuccess,
+        },
+      }));
+    } catch (error) {
+      setDeleteStatuses((current) => ({
+        ...current,
+        [fileName]: {
+          tone: "error",
+          message: `${adminText.deleteFailed}\uff1a${
+            error instanceof Error ? error.message : "\u672a\u77e5\u9519\u8bef"
+          }`,
         },
       }));
     }
@@ -108,14 +197,15 @@ export function AdminFileList({ files, parsedFiles }: AdminFileListProps) {
           {dictionary.admin.uploadedFiles}
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          {files.length} {fileLabel} {dictionary.admin.available}
+          {visibleFiles.length} {fileLabel} {dictionary.admin.available}
         </p>
         <p className="mt-1 text-sm text-slate-500">
-          {parsedCount} parsed for V3.1 local text extraction.
+          {adminText.localParsed}\uff1a{adminText.parsedFiles} {parsedCount}{" "}
+          {adminText.fileUnit}\u3002
         </p>
       </div>
 
-      {files.length === 0 ? (
+      {visibleFiles.length === 0 ? (
         <div className="px-6 py-10 text-sm text-slate-500">
           {dictionary.admin.empty}
         </div>
@@ -133,32 +223,56 @@ export function AdminFileList({ files, parsedFiles }: AdminFileListProps) {
                 <th className="px-6 py-3 font-semibold">
                   {dictionary.admin.uploaded}
                 </th>
-                <th className="px-6 py-3 font-semibold">Parse status</th>
-                <th className="px-6 py-3 font-semibold">Text summary</th>
-                <th className="px-6 py-3 font-semibold">Action</th>
+                <th className="px-6 py-3 font-semibold">
+                  {adminText.parseStatus}
+                </th>
+                <th className="px-6 py-3 font-semibold">
+                  {adminText.textSummary}
+                </th>
+                <th className="px-6 py-3 font-semibold">{adminText.action}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {files.map((file) => {
+              {visibleFiles.map((file) => {
                 const parsedFile = parsedByFileName[file.name];
                 const status = parseStatuses[file.name];
+                const deleteStatus = deleteStatuses[file.name];
                 const isSupported = isParseSupported(file.name);
                 const isParsing = status?.tone === "loading";
+                const isDeleting = deleteStatus?.tone === "loading";
                 const statusMessage =
                   status?.message ??
                   (parsedFile
-                    ? `Parsed at ${formatUploadTime(
+                    ? `${adminText.parsedAt} ${formatUploadTime(
                         parsedFile.parsedAt,
                         dictionary.admin.dateLocale,
                       )}`
                     : isSupported
-                      ? "Not parsed yet."
-                      : "Not supported in V3.1.");
+                      ? adminText.notParsed
+                      : adminText.unsupported);
 
                 return (
                   <tr key={file.name}>
                     <td className="max-w-[320px] px-6 py-4 font-medium text-slate-900">
-                      <span className="block truncate">{file.name}</span>
+                      <span className="block truncate">{file.originalName}</span>
+                      {file.originalName !== file.name ? (
+                        <span className="mt-1 block truncate text-xs font-normal text-slate-400">
+                          {adminText.storedFileName}\uff1a{file.name}
+                        </span>
+                      ) : null}
+                      {deleteStatus ? (
+                        <span
+                          className={`mt-1 block text-xs font-normal ${
+                            deleteStatus.tone === "error"
+                              ? "text-red-700"
+                              : deleteStatus.tone === "success"
+                                ? "text-emerald-700"
+                                : "text-slate-500"
+                          }`}
+                        >
+                          {deleteStatus.message}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       {formatFileSize(file.size)}
@@ -188,17 +302,31 @@ export function AdminFileList({ files, parsedFiles }: AdminFileListProps) {
                           {createSummary(parsedFile.text)}
                         </span>
                       ) : (
-                        <span className="text-slate-400">No summary yet.</span>
+                        <span className="text-slate-400">
+                          {adminText.noSummary}
+                        </span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="space-x-2 px-6 py-4">
                       <button
                         type="button"
-                        disabled={!isSupported || isParsing}
+                        disabled={!isSupported || isParsing || isDeleting}
                         onClick={() => parseFile(file.name)}
                         className="rounded-md bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
                       >
-                        {isParsing ? "Parsing..." : parsedFile ? "Re-parse" : "Parse"}
+                        {isParsing
+                          ? adminText.parsing
+                          : parsedFile
+                            ? adminText.reparse
+                            : adminText.parse}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={() => deleteFile(file.name)}
+                        className="rounded-md border border-red-200 px-4 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                      >
+                        {isDeleting ? adminText.deleting : adminText.delete}
                       </button>
                     </td>
                   </tr>
