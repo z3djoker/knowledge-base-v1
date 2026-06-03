@@ -17,6 +17,23 @@ export async function ensureUploadsDirectory() {
   await mkdir(uploadsDirectory, { recursive: true });
 }
 
+export async function getUploadedFilePath(fileName: string) {
+  const safeFileName = path.basename(fileName);
+
+  if (safeFileName !== fileName) {
+    throw new Error("Invalid file name.");
+  }
+
+  const filePath = path.join(uploadsDirectory, safeFileName);
+  const metadata = await stat(filePath);
+
+  if (!metadata.isFile()) {
+    throw new Error("Uploaded file not found.");
+  }
+
+  return filePath;
+}
+
 export async function listUploadedFiles(): Promise<UploadedFile[]> {
   await ensureUploadsDirectory();
 

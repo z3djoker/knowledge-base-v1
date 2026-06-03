@@ -22,6 +22,7 @@
 
 # local uploads
 /uploads/
+/parsed/
 
 # misc
 .DS_Store
