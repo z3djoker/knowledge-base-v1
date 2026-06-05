@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import { deleteUploadedFile, listUploadedFiles } from "@/lib/files";
+import { listAdminFiles } from "@/lib/admin-files";
+import { deleteUploadedFile } from "@/lib/files";
 import { deleteFileMetadata } from "@/lib/file-metadata";
 import { deleteParsedFile } from "@/lib/parsed-files";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const files = await listUploadedFiles();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const page = Number(url.searchParams.get("page"));
+  const pageSize = Number(url.searchParams.get("pageSize"));
+  const result = await listAdminFiles({ page, pageSize });
 
-  return NextResponse.json({ files });
+  return NextResponse.json(result);
 }
 
 type DeleteFileRequestBody = {

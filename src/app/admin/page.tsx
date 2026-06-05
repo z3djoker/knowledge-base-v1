@@ -1,16 +1,12 @@
 import { AdminFileList } from "@/components/admin-file-list";
 import { SiteShell } from "@/components/site-shell";
 import { AdminIntro } from "./ui";
-import { listFileMetadata } from "@/lib/file-metadata";
-import { listUploadedFiles } from "@/lib/files";
-import { listParsedFiles } from "@/lib/parsed-files";
+import { listAdminFiles } from "@/lib/admin-files";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const files = await listUploadedFiles();
-  const parsedFiles = await listParsedFiles();
-  const metadata = await listFileMetadata();
+  const { files, parsedFiles, metadata } = await listAdminFiles();
 
   return (
     <SiteShell>
