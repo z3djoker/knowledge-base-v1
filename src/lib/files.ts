@@ -1,6 +1,11 @@
 import { mkdir, readdir, stat, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { formatFileSize } from "./file-format";
+import {
+  calculateFileSha256,
+  runDatabaseSync,
+  upsertFileRecord,
+} from "./knowledge-db";
 import { MAX_UPLOAD_SIZE_BYTES, isAllowedUploadExtension } from "./upload-config";
 
 export type UploadedFile = {
@@ -123,12 +128,26 @@ export async function saveUploadedFile(file: File) {
 
   await writeFile(destination, bytes);
 
-  return {
+  const savedFile = {
     name: uniqueName,
     originalName,
     size: file.size,
     uploadedAt: new Date().toISOString(),
   };
+
+  await runDatabaseSync("upsert uploaded file", async () => {
+    await upsertFileRecord({
+      fileName: savedFile.name,
+      originalName: savedFile.originalName,
+      storagePath: path.join("uploads", savedFile.name),
+      size: savedFile.size,
+      uploadedAt: savedFile.uploadedAt,
+      mimeType: file.type || undefined,
+      sha256: await calculateFileSha256(destination),
+    });
+  });
+
+  return savedFile;
 }
 
 export async function deleteUploadedFile(fileName: string) {

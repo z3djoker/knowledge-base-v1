@@ -1,5 +1,6 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
+import { runDatabaseSync, upsertParsedDocument } from "./knowledge-db";
 
 export type ParsedFileMetadata = Record<string, string | number | boolean>;
 
@@ -29,6 +30,10 @@ export async function saveParsedFile(parsedFile: ParsedFile) {
     JSON.stringify(parsedFile, null, 2),
     "utf8",
   );
+
+  await runDatabaseSync("upsert parsed document", async () => {
+    await upsertParsedDocument(parsedFile);
+  });
 
   return parsedFile;
 }

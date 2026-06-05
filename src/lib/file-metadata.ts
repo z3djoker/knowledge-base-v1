@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import type { UploadedFile } from "./files";
+import { runDatabaseSync, upsertMetadataRecord } from "./knowledge-db";
 import {
   metadataVersion,
   type FileMetadata,
@@ -118,6 +119,10 @@ export async function saveFileMetadata(input: FileMetadataInput) {
     JSON.stringify(metadata, null, 2),
     "utf8",
   );
+
+  await runDatabaseSync("upsert file metadata", async () => {
+    await upsertMetadataRecord(metadata);
+  });
 
   return metadata;
 }
