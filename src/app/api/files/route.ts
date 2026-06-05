@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
+import { deleteKnowledgeAsset } from "@/lib/delete-asset";
 import { listAdminFiles } from "@/lib/admin-files";
-import { deleteUploadedFile } from "@/lib/files";
-import { deleteFileMetadata } from "@/lib/file-metadata";
-import { deleteParsedFile } from "@/lib/parsed-files";
 
 export const dynamic = "force-dynamic";
 
@@ -33,15 +31,9 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await deleteUploadedFile(body.fileName);
-    const parsedResult = await deleteParsedFile(body.fileName);
-    const metadataResult = await deleteFileMetadata(body.fileName);
+    const result = await deleteKnowledgeAsset(body.fileName);
 
-    return NextResponse.json({
-      deletedFileName: body.fileName,
-      deletedParsedResult: parsedResult.deleted,
-      deletedMetadata: metadataResult.deleted,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     const message =
       error instanceof Error
