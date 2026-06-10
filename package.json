@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "prisma db seed",
+    "db:seed:admin": "node scripts/seed-admin.mjs",
     "db:migrate:assets": "node scripts/migrate-assets.mjs",
     "db:studio": "prisma studio"
   },

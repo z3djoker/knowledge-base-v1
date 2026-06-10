@@ -174,14 +174,25 @@ model User {
   authUserId    String?         @unique @map("auth_user_id") @db.Uuid
   email         String          @unique
   name          String?
+  passwordHash  String?         @map("password_hash")
   status        String          @default("active")
   extraMetadata Json?           @map("extra_metadata") @db.JsonB
+  lastLoginAt   DateTime?       @map("last_login_at") @db.Timestamptz(6)
+  disabledAt    DateTime?       @map("disabled_at") @db.Timestamptz(6)
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?       @map("updated_by_user_id") @db.Uuid
   createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
   userRoles     UserRole[]
   projectMembers ProjectMember[]
+  createdBy     User?           @relation("UserCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy     User?           @relation("UserUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  createdUsers  User[]          @relation("UserCreatedBy")
+  updatedUsers  User[]          @relation("UserUpdatedBy")
 
   @@index([status])
+  @@index([createdByUserId])
+  @@index([updatedByUserId])
   @@map("users")
 }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth/guards";
 import {
   listFileMetadata,
   saveFileMetadata,
@@ -9,6 +10,12 @@ import { getUploadedFilePath } from "@/lib/files";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const auth = await requireAdminApi();
+
+  if (auth.response) {
+    return auth.response;
+  }
+
   const metadata = await listFileMetadata();
 
   return NextResponse.json({ metadata, options: metadataOptions });
@@ -16,6 +23,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
+
     const body = (await request.json()) as FileMetadataInput;
 
     if (!body.fileName || !body.originalName) {

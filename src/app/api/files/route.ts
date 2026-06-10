@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth/guards";
 import { deleteKnowledgeAsset } from "@/lib/delete-asset";
 import { listAdminFiles } from "@/lib/admin-files";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const auth = await requireAdminApi();
+
+  if (auth.response) {
+    return auth.response;
+  }
+
   const url = new URL(request.url);
   const page = Number(url.searchParams.get("page"));
   const pageSize = Number(url.searchParams.get("pageSize"));
@@ -19,6 +26,12 @@ type DeleteFileRequestBody = {
 
 export async function DELETE(request: Request) {
   try {
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
+
     const body = (await request.json()) as DeleteFileRequestBody;
 
     if (!body.fileName) {
