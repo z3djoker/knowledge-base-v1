@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
-import { deleteUploadedFile, listUploadedFiles } from "@/lib/files";
-import { deleteFileMetadata } from "@/lib/file-metadata";
-import { deleteParsedFile } from "@/lib/parsed-files";
+import { requireAdminApi } from "@/lib/auth/guards";
+import { deleteKnowledgeAsset } from "@/lib/delete-asset";
+import { listAdminFiles } from "@/lib/admin-files";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const files = await listUploadedFiles();
+export async function GET(request: Request) {
+  const auth = await requireAdminApi();
 
-  return NextResponse.json({ files });
+  if (auth.response) {
+    return auth.response;
+  }
+
+  const url = new URL(request.url);
+  const page = Number(url.searchParams.get("page"));
+  const pageSize = Number(url.searchParams.get("pageSize"));
+  const result = await listAdminFiles({ page, pageSize });
+
+  return NextResponse.json(result);
 }
 
 type DeleteFileRequestBody = {
@@ -17,6 +26,12 @@ type DeleteFileRequestBody = {
 
 export async function DELETE(request: Request) {
   try {
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
+
     const body = (await request.json()) as DeleteFileRequestBody;
 
     if (!body.fileName) {
@@ -29,15 +44,9 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await deleteUploadedFile(body.fileName);
-    const parsedResult = await deleteParsedFile(body.fileName);
-    const metadataResult = await deleteFileMetadata(body.fileName);
+    const result = await deleteKnowledgeAsset(body.fileName);
 
-    return NextResponse.json({
-      deletedFileName: body.fileName,
-      deletedParsedResult: parsedResult.deleted,
-      deletedMetadata: metadataResult.deleted,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     const message =
       error instanceof Error

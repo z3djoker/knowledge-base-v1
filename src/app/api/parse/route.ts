@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth/guards";
 import { getUploadedFilePath } from "@/lib/files";
 import { saveParsedFile } from "@/lib/parsed-files";
 import { parseUploadedDocument } from "@/lib/parsers";
@@ -9,6 +10,12 @@ type ParseRequestBody = {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
+
     const body = (await request.json()) as ParseRequestBody;
 
     if (!body.fileName) {
